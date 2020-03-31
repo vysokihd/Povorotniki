@@ -24,11 +24,11 @@
 #define DIR_ON(P)			PORTB &= ~(P)
 #define DIR_OFF(P)			PORTB |= (P)
 
-#define DELAY_OFF		50				//мс, задержка выключения
-#define DELAY_ON		50				//мс, задержка включения
-#define TIMEOUT			6000			//мс, таймаут отключения направления
-#define FLASHES_1		6				//Кол-во вспышек поворотников (x/2)
-#define FLASHES_2		6				//Кол-во вспышек аварийкой	(x/2)
+#define DELAY_OFF		3000			//СЃС‡С‘С‚С‡РёРє, Р·Р°РґРµСЂР¶РєР° РІС‹РєР»СЋС‡РµРЅРёСЏ
+#define DELAY_ON		3000			//СЃС‡С‘С‚С‡РёРє, Р·Р°РґРµСЂР¶РєР° РІРєР»СЋС‡РµРЅРёСЏ
+#define TIMEOUT			6000			//РјСЃ, С‚Р°Р№РјР°СѓС‚ РѕС‚РєР»СЋС‡РµРЅРёСЏ РЅР°РїСЂР°РІР»РµРЅРёСЏ
+#define FLASHES_1		6				//РљРѕР»-РІРѕ РІСЃРїС‹С€РµРє РїРѕРІРѕСЂРѕС‚РЅРёРєРѕРІ (x/2)
+#define FLASHES_2		6				//РљРѕР»-РІРѕ РІСЃРїС‹С€РµРє Р°РІР°СЂРёР№РєРѕР№	(x/2)
 
 typedef enum
 {
@@ -38,14 +38,14 @@ typedef enum
 	MODE_BOTH	
 }STATE;
 
-STATE state = MODE_OFF;				//Состояние логического автомата
-volatile uint16_t tim0_tick = 0;	//Таймерная переменная
-volatile bool timStart = false;		//Запуск таймерной переменной
-volatile uint8_t changePin = 0;		//Счётчик изменений состояния пина обратной связи
+STATE state = MODE_OFF;				//РЎРѕСЃС‚РѕСЏРЅРёРµ Р»РѕРіРёС‡РµСЃРєРѕРіРѕ Р°РІС‚РѕРјР°С‚Р°
+volatile uint16_t tim0_tick = 0;	//РўР°Р№РјРµСЂРЅР°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ
+volatile bool timStart = false;		//Р—Р°РїСѓСЃРє С‚Р°Р№РјРµСЂРЅРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№
+volatile uint8_t changePin = 0;		//РЎС‡С‘С‚С‡РёРє РёР·РјРµРЅРµРЅРёР№ СЃРѕСЃС‚РѕСЏРЅРёСЏ РїРёРЅР° РѕР±СЂР°С‚РЅРѕР№ СЃРІСЏР·Рё
 
 static inline void mcuInit()
 {
-	//----------- Инициализация портов ввода вывода ----------
+	//----------- РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РїРѕСЂС‚РѕРІ РІРІРѕРґР° РІС‹РІРѕРґР° ----------
 	PORTB  = (1 << LEFT_OUT) | (1 << RIGHT_OUT);
 	DDRB = (1 << LEFT_OUT) | (1 << RIGHT_OUT);	
 	
@@ -78,9 +78,9 @@ int main(void)
 {
 	mcuInit();
 	bool changeDir = false;
-	//uint8_t leftDir = 0;
-	//uint8_t rightDir = 0;
-	//uint8_t bothDir = 0;
+	uint16_t leftDir = 0;
+	uint16_t rightDir = 0;
+	uint16_t bothDir = 0;
 	
 	sei();
     while (1) 
@@ -90,112 +90,156 @@ int main(void)
 		{
 		case MODE_OFF:
 			tim0_tick = 0;
-			changePin = 0;	
-						
-			//Проверка входящего сигнала налево
+			changePin = 0;
+			//РџСЂРѕРІРµСЂРєР° РІС…РѕРґСЏС‰РµРіРѕ СЃРёРіРЅР°Р»Р° РЅР°Р»РµРІРѕ
 			if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_CLER (1 << RIGHT_IN))	
 			{
-					_delay_ms(DELAY_ON);
-					if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_CLER (1 << RIGHT_IN))
+					if(leftDir == DELAY_ON)
 					{
 						state = MODE_LEFT;
 						timStart = true;
+						leftDir = 0;
+						rightDir = 0;
+						bothDir = 0;
 					}
+					leftDir++;
+					//_delay_ms(DELAY_ON);
+					//if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_CLER (1 << RIGHT_IN))
+					//{
+						//state = MODE_LEFT;
+						//timStart = true;
+					//}
 			}
-			//Проверка входящего сигнала направо
-			else if(PIN_IS_SET(1 << RIGHT_IN) && PIN_IS_CLER (1 << LEFT_IN))	
+			//РџСЂРѕРІРµСЂРєР° РІС…РѕРґСЏС‰РµРіРѕ СЃРёРіРЅР°Р»Р° РЅР°РїСЂР°РІРѕ
+			if(PIN_IS_SET(1 << RIGHT_IN) && PIN_IS_CLER (1 << LEFT_IN))	
 			{
-					_delay_ms(DELAY_ON);
-					if(PIN_IS_SET(1 << RIGHT_IN) && PIN_IS_CLER (1 << LEFT_IN))
+					if(rightDir == DELAY_ON)
 					{
 						state = MODE_RIGHT;
 						timStart = true;
+						leftDir = 0;
+						rightDir = 0;
+						bothDir = 0;
 					}
+					rightDir++;
+					//_delay_ms(DELAY_ON);
+					//if(PIN_IS_SET(1 << RIGHT_IN) && PIN_IS_CLER (1 << LEFT_IN))
+					//{
+						//state = MODE_RIGHT;
+						//timStart = true;
+					//}
 			}
-			//Проверка одновременного срабатывания налево и направо (аварийка)
-			else if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_SET(1 << RIGHT_IN))
+			//РџСЂРѕРІРµСЂРєР° РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕРіРѕ СЃСЂР°Р±Р°С‚С‹РІР°РЅРёСЏ РЅР°Р»РµРІРѕ Рё РЅР°РїСЂР°РІРѕ (Р°РІР°СЂРёР№РєР°)
+			if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_SET(1 << RIGHT_IN))
 			{
-					_delay_ms(DELAY_ON);
-					if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_SET(1 << RIGHT_IN))
+					if(bothDir == (DELAY_ON / 2))
 					{
 						state = MODE_BOTH;
 						timStart = true;
+						leftDir = 0;
+						rightDir = 0;
+						bothDir = 0;
 					}
+					bothDir++;
+					//_delay_ms(DELAY_ON);
+					//if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_SET(1 << RIGHT_IN))
+					//{
+						//state = MODE_BOTH;
+						//timStart = true;
+					//}
+			}
+			//РќРёС‡РµРіРѕ РЅРµ РІС‹Р±СЂР°РЅРѕ
+			if(PIN_IS_CLER(1 << LEFT_IN) && PIN_IS_CLER(1 << RIGHT_IN))
+			{
+				leftDir = 0;
+				rightDir = 0;
+				bothDir = 0;
 			}
 		break;
 		
 		case MODE_LEFT:
-			//Удержание направления налево			
+			//РЈРґРµСЂР¶Р°РЅРёРµ РЅР°РїСЂР°РІР»РµРЅРёСЏ РЅР°Р»РµРІРѕ			
 			DIR_ON(1 << LEFT_OUT);
 			changeDir = PIN_IS_SET(1 << FB_IN) && PIN_IS_SET(1 << RIGHT_IN);
 			
-			//Выход по: лимит кол-ва вспышек налево | сигналу направо | таймауту
+			//Р’С‹С…РѕРґ РїРѕ: Р»РёРјРёС‚ РєРѕР»-РІР° РІСЃРїС‹С€РµРє РЅР°Р»РµРІРѕ | СЃРёРіРЅР°Р»Сѓ РЅР°РїСЂР°РІРѕ | С‚Р°Р№РјР°СѓС‚Сѓ
 			if(changePin >= FLASHES_1 || changeDir || tim0_tick > (TIMEOUT/10))
 			{
 				DIR_OFF(1 << LEFT_OUT | 1 << RIGHT_OUT);
-				while(PIN_IS_SET(1 << LEFT_IN) || PIN_IS_SET(1 << FB_IN)); // || PIN_IS_SET(1 << RIGHT_IN) || PIN_IS_SET(1 << FB_IN));
-				_delay_ms(DELAY_ON);
+				uint16_t i = DELAY_OFF;
+				while(i)// || PIN_IS_SET(1 << FB_IN));
+				{
+					if(PIN_IS_SET(1 << LEFT_IN)) i = DELAY_OFF;
+					else i--;
+				}
+				//_delay_ms(DELAY_ON);
 				if(changeDir) 
 				{
 					state = MODE_RIGHT;
-					tim0_tick = 0;
-					changePin = 0;
 				}
 				else 
 				{
 					state = MODE_OFF;
 					timStart = false;
-					_delay_ms(DELAY_OFF);
+					//_delay_ms(DELAY_OFF);
 				}
-				
+				tim0_tick = 0;
+				changePin = 0;
 			}
 			
 		break;
 		
 		case MODE_RIGHT:
-			//Удержание направления направо
+			//РЈРґРµСЂР¶Р°РЅРёРµ РЅР°РїСЂР°РІР»РµРЅРёСЏ РЅР°РїСЂР°РІРѕ
 			DIR_ON(1 << RIGHT_OUT);
 			changeDir = PIN_IS_SET(1 << FB_IN) && PIN_IS_SET(1 <<LEFT_IN);
 			
-			//Выход по: лимит кол-ва вспышек направо | сигналу налево | таймауту
+			//Р’С‹С…РѕРґ РїРѕ: Р»РёРјРёС‚ РєРѕР»-РІР° РІСЃРїС‹С€РµРє РЅР°РїСЂР°РІРѕ | СЃРёРіРЅР°Р»Сѓ РЅР°Р»РµРІРѕ | С‚Р°Р№РјР°СѓС‚Сѓ
 			if(changePin >= FLASHES_1 || changeDir || tim0_tick > (TIMEOUT/10)) 
 			{
 				DIR_OFF(1 << RIGHT_OUT | 1 << LEFT_OUT);
-				while(PIN_IS_SET(1 << RIGHT_IN) || PIN_IS_SET(1 << FB_IN)); // || PIN_IS_SET(1 << RIGHT_IN) || PIN_IS_SET(1 << FB_IN));
-				_delay_ms(DELAY_ON);
+				uint16_t i = DELAY_OFF;
+				while(i) // || PIN_IS_SET(1 << FB_IN));
+				{
+					if(PIN_IS_SET(1 << RIGHT_IN)) i = DELAY_OFF;
+					else i--;
+				}
+				//_delay_ms(DELAY_ON);
 				if(changeDir)
 				{
 					state = MODE_LEFT;
-					tim0_tick = 0;
-					changePin = 0;
 				}
 				else 
 				{
 					state = MODE_OFF;
 					timStart = false;
-					_delay_ms(DELAY_OFF);
+					//_delay_ms(DELAY_OFF);
 				}
+				tim0_tick = 0;
+				changePin = 0;
 			}
 			
 		break;	
 		
 		case MODE_BOTH:
 			DIR_ON(1 << RIGHT_OUT | 1 << LEFT_OUT);
-			//Выход по: лимиту кол-ва вспышек аварийки | таймауту
+			//Р’С‹С…РѕРґ РїРѕ: Р»РёРјРёС‚Сѓ РєРѕР»-РІР° РІСЃРїС‹С€РµРє Р°РІР°СЂРёР№РєРё | С‚Р°Р№РјР°СѓС‚Сѓ
 			if(changePin >= FLASHES_2 || tim0_tick > (TIMEOUT/10))
 			{
 				timStart = false;
 				DIR_OFF(1 << RIGHT_OUT | 1 << LEFT_OUT);
-				while(PIN_IS_SET(1 << RIGHT_IN) || PIN_IS_SET (1 << LEFT_IN) || PIN_IS_SET(1 << FB_IN));
+				while(PIN_IS_SET(1 << RIGHT_IN) || PIN_IS_SET (1 << LEFT_IN));
 				state = MODE_OFF;
-				_delay_ms(DELAY_OFF);
+				//_delay_ms(DELAY_OFF);
+				tim0_tick = 0;
+				changePin = 0;
 			}
 		break;
 		}
-    }
+	}
 }
 
-//Вектор прерывания таймера
+//Р’РµРєС‚РѕСЂ РїСЂРµСЂС‹РІР°РЅРёСЏ С‚Р°Р№РјРµСЂР°
 ISR (TIM0_COMPA_vect)
 {
 	if(timStart) 
@@ -204,7 +248,7 @@ ISR (TIM0_COMPA_vect)
 	}
 }
 
-//Вектор прерывания по изменению состояния пина
+//Р’РµРєС‚РѕСЂ РїСЂРµСЂС‹РІР°РЅРёСЏ РїРѕ РёР·РјРµРЅРµРЅРёСЋ СЃРѕСЃС‚РѕСЏРЅРёСЏ РїРёРЅР°
 ISR (PCINT0_vect)
 {
 	if(state != MODE_OFF)
