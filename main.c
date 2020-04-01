@@ -24,9 +24,9 @@
 #define DIR_ON(P)			PORTB &= ~(P)
 #define DIR_OFF(P)			PORTB |= (P)
 
-#define DELAY_OFF		3000			//счётчик, задержка выключения
-#define DELAY_ON		3000			//счётчик, задержка включения
-#define TIMEOUT			6000			//мс, таймаут отключения направления
+#define DELAY_OFF		200				//счётчик, задержка выключения направления
+#define DELAY_ON		1000			//счётчик, задержка включения направления
+#define TIMEOUT			10000			//мс, таймаут отключения направления
 #define FLASHES_1		6				//Кол-во вспышек поворотников (x/2)
 #define FLASHES_2		6				//Кол-во вспышек аварийкой	(x/2)
 
@@ -91,6 +91,8 @@ int main(void)
 		case MODE_OFF:
 			tim0_tick = 0;
 			changePin = 0;
+			//Задержка сканирования направлений пока активен исполнительный модуль
+			while(PIN_IS_CLER (1 << FB_IN));
 			//Проверка входящего сигнала налево
 			if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_CLER (1 << RIGHT_IN))	
 			{
@@ -103,12 +105,6 @@ int main(void)
 						bothDir = 0;
 					}
 					leftDir++;
-					//_delay_ms(DELAY_ON);
-					//if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_CLER (1 << RIGHT_IN))
-					//{
-						//state = MODE_LEFT;
-						//timStart = true;
-					//}
 			}
 			//Проверка входящего сигнала направо
 			if(PIN_IS_SET(1 << RIGHT_IN) && PIN_IS_CLER (1 << LEFT_IN))	
@@ -122,17 +118,11 @@ int main(void)
 						bothDir = 0;
 					}
 					rightDir++;
-					//_delay_ms(DELAY_ON);
-					//if(PIN_IS_SET(1 << RIGHT_IN) && PIN_IS_CLER (1 << LEFT_IN))
-					//{
-						//state = MODE_RIGHT;
-						//timStart = true;
-					//}
 			}
 			//Проверка одновременного срабатывания налево и направо (аварийка)
 			if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_SET(1 << RIGHT_IN))
 			{
-					if(bothDir == (DELAY_ON / 2))
+					if(bothDir == (DELAY_ON))
 					{
 						state = MODE_BOTH;
 						timStart = true;
@@ -141,12 +131,6 @@ int main(void)
 						bothDir = 0;
 					}
 					bothDir++;
-					//_delay_ms(DELAY_ON);
-					//if(PIN_IS_SET(1 << LEFT_IN) && PIN_IS_SET(1 << RIGHT_IN))
-					//{
-						//state = MODE_BOTH;
-						//timStart = true;
-					//}
 			}
 			//Ничего не выбрано
 			if(PIN_IS_CLER(1 << LEFT_IN) && PIN_IS_CLER(1 << RIGHT_IN))
@@ -167,24 +151,13 @@ int main(void)
 			{
 				DIR_OFF(1 << LEFT_OUT | 1 << RIGHT_OUT);
 				uint16_t i = DELAY_OFF;
-				while(i)// || PIN_IS_SET(1 << FB_IN));
+				while(i)
 				{
 					if(PIN_IS_SET(1 << LEFT_IN)) i = DELAY_OFF;
 					else i--;
 				}
-				//_delay_ms(DELAY_ON);
-				if(changeDir) 
-				{
-					state = MODE_RIGHT;
-				}
-				else 
-				{
-					state = MODE_OFF;
-					timStart = false;
-					//_delay_ms(DELAY_OFF);
-				}
-				tim0_tick = 0;
-				changePin = 0;
+				state = MODE_OFF;
+				timStart = false;
 			}
 			
 		break;
@@ -199,24 +172,13 @@ int main(void)
 			{
 				DIR_OFF(1 << RIGHT_OUT | 1 << LEFT_OUT);
 				uint16_t i = DELAY_OFF;
-				while(i) // || PIN_IS_SET(1 << FB_IN));
+				while(i)
 				{
 					if(PIN_IS_SET(1 << RIGHT_IN)) i = DELAY_OFF;
 					else i--;
 				}
-				//_delay_ms(DELAY_ON);
-				if(changeDir)
-				{
-					state = MODE_LEFT;
-				}
-				else 
-				{
-					state = MODE_OFF;
-					timStart = false;
-					//_delay_ms(DELAY_OFF);
-				}
-				tim0_tick = 0;
-				changePin = 0;
+				state = MODE_OFF;
+				timStart = false;
 			}
 			
 		break;	
@@ -230,9 +192,6 @@ int main(void)
 				DIR_OFF(1 << RIGHT_OUT | 1 << LEFT_OUT);
 				while(PIN_IS_SET(1 << RIGHT_IN) || PIN_IS_SET (1 << LEFT_IN));
 				state = MODE_OFF;
-				//_delay_ms(DELAY_OFF);
-				tim0_tick = 0;
-				changePin = 0;
 			}
 		break;
 		}
